@@ -54,6 +54,13 @@ if [ -z "${LABS_GATEWAY_KEY:-}" ] && [ ! -f "$LABS_HOME/.security.yml" ]; then
   die "LABS_GATEWAY_KEY is not set and $LABS_HOME/.security.yml does not exist"
 fi
 
+# 1b. name resolution for a Go binary
+pkg install -y proot resolv-conf >/dev/null 2>&1 || die "pkg could not install proot and resolv-conf"
+command -v proot >/dev/null || die "proot is not on PATH"
+[ -s "$PREFIX/etc/resolv.conf" ] || die "$PREFIX/etc/resolv.conf is missing or empty"
+grep -q '^nameserver' "$PREFIX/etc/resolv.conf" || die "$PREFIX/etc/resolv.conf names no nameserver"
+say "dns: proot will show labs $PREFIX/etc/resolv.conf ($(grep -m1 '^nameserver' "$PREFIX/etc/resolv.conf"))"
+
 # 2. node
 need_node=1
 if command -v node >/dev/null; then
@@ -181,7 +188,11 @@ if ! mkdir "\$LOCK" 2>/dev/null; then
 fi
 trap 'rmdir "\$LOCK" 2>/dev/null' EXIT INT TERM
 printf '%s waking\n' "\$(date -u +%FT%TZ)"
-$PREFIX/bin/labs agent --no-color -m "\$BEAT_MESSAGE"
+# labs is Go, and Go resolves names itself from /etc/resolv.conf. Android has no such file, so Go
+# falls back to [::1]:53, where nothing listens, and every call to the gateway fails with "network
+# is unreachable" while curl on the same phone works. proot shows the process Termux's own
+# resolv.conf at the path Go reads. No root.
+proot -b "$PREFIX/etc/resolv.conf:/etc/resolv.conf" $PREFIX/bin/labs agent --no-color -m "\$BEAT_MESSAGE"
 rc=\$?
 printf '%s waking ended (%s)\n' "\$(date -u +%FT%TZ)" "\$rc"
 exit \$rc

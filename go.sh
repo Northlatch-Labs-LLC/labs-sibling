@@ -28,8 +28,8 @@ case "$NAME" in *[!a-z0-9_]*) die "the name may hold only lowercase letters, dig
 
 say "1/6 packages"
 pkg update -y >/dev/null 2>&1 || true
-pkg install -y curl tar nodejs-lts termux-api >/dev/null 2>&1 \
-  || pkg install -y curl tar nodejs termux-api >/dev/null 2>&1 \
+pkg install -y curl tar nodejs-lts termux-api proot resolv-conf >/dev/null 2>&1 \
+  || pkg install -y curl tar nodejs termux-api proot resolv-conf >/dev/null 2>&1 \
   || die "pkg could not install the tools"
 node --version >/dev/null 2>&1 || die "node is not on PATH after install"
 printf '   node %s\n' "$(node --version)"
