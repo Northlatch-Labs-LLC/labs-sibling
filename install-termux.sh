@@ -184,7 +184,9 @@ sed -e "s#__WORKSPACE__#$WORKSPACE#g" \
     -e "s#/usr/bin/node#$NODE_BIN#g" \
     -e "s#/opt/labs#$LABS_OPT#g" \
     "$HERE/pkg/config.json" > "$LABS_HOME/config.json"
-grep -q "/opt/labs" "$LABS_HOME/config.json" && die "config.json still names /opt/labs after substitution"
+# Anchored to the opening quote. A correct value is "$PREFIX/opt/labs/...", which still CONTAINS
+# the string /opt/labs — an unanchored check here fails on the config it just wrote correctly.
+grep -q '"/opt/labs' "$LABS_HOME/config.json" && die "config.json still names a bare /opt/labs after substitution"
 chmod 600 "$LABS_HOME/config.json"
 if [ -n "${LABS_GATEWAY_KEY:-}" ]; then
   umask 077
