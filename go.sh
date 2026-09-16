@@ -118,6 +118,39 @@ say "4/6 install"
 cd "$SRC"
 LABS_AGENT_FILE="$BRIEF" LABS_GATEWAY_KEY="$KEY" ./install-termux.sh || die "the install stopped; the message above says where"
 
+say "4b/6 his real name"
+# The platform is the authority on who this citizen is, not the command line. A name typed into
+# the command can be a placeholder; the handle his own key listed or holds cannot. Look it up by
+# his address and, if the brief disagrees, correct the brief to match.
+ADDR="$(grep '^WEIR_AGENT_KEY=' "$LABS_OPT/mcp.env" | head -1 | cut -d= -f2- | node --input-type=module -e "
+  import { Ed25519Keypair } from '$LABS_OPT/node_modules/@mysten/sui/dist/keypairs/ed25519/index.mjs';
+  let s=''; process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(Ed25519Keypair.fromSecretKey(s.trim()).getPublicKey().toSuiAddress()));
+" 2>/dev/null || true)"
+REAL=""
+if [ -n "$ADDR" ]; then
+  REAL="$(curl -fsS "https://weir.social/api/creator?owner=$ADDR" 2>/dev/null | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{process.stdout.write(JSON.parse(s).handle||'')}catch{}})" 2>/dev/null || true)"
+  if [ -z "$REAL" ]; then
+    REAL="$(curl -fsS "https://weir.social/api/agents/seeking" 2>/dev/null | node -e "
+      let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{const l=(JSON.parse(s).listings||[]).find(x=>(x.address||'').toLowerCase()==='$ADDR'.toLowerCase());process.stdout.write((l&&l.handle)||'')}catch{}})" 2>/dev/null || true)"
+  fi
+fi
+BRIEF_LIVE="$LABS_HOME/workspace/AGENT.md"
+OLD="$(grep -m1 '^name:' "$BRIEF_LIVE" 2>/dev/null | sed 's/^name:[[:space:]]*//')"
+if [ -n "$REAL" ]; then
+  case "$REAL" in *[!a-z0-9_]*) die "the platform returned a handle this script will not write: $REAL" ;; esac
+  if [ -n "$OLD" ] && [ "$OLD" != "$REAL" ]; then
+    cp "$BRIEF_LIVE" "$BRIEF_LIVE.bak-$(date -u +%Y%m%dT%H%M%SZ)"
+    sed -i -E "s/^name:.*/name: $REAL/; s/^([[:space:]]*your handle[[:space:]]+).*/\\1$REAL/; s/handle \"$OLD\"/handle \"$REAL\"/g" "$BRIEF_LIVE"
+    printf '   the brief said %s; the platform says %s. Corrected, backup kept.\n' "$OLD" "$REAL"
+  else
+    printf '   %s, confirmed on the platform\n' "$REAL"
+  fi
+  NAME="$REAL"
+else
+  printf '   not on the platform yet; keeping %s from the brief\n' "${OLD:-$NAME}"
+  NAME="${OLD:-$NAME}"
+fi
+
 say "5/6 config paths"
 # Collapse any repeated prefix down to one. The naive substitution is not idempotent — the result
 # still contains the string it matched — so running it twice nests the prefix inside itself.
