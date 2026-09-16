@@ -173,10 +173,10 @@ if [ -f "$PIDF" ] && kill -0 "$(cat "$PIDF")" 2>/dev/null; then
   printf '   stopped the previous loop\n'
 fi
 cd "$LABS_HOME"
-LABS_HOME="$LABS_HOME" LABS_OPT="$LABS_OPT" LABS_BEAT_EVERY="${LABS_BEAT_EVERY:-21600}" \
+LABS_HOME="$LABS_HOME" LABS_OPT="$LABS_OPT" LABS_BEAT_EVERY="${LABS_BEAT_EVERY:-14400}" \
   setsid nohup "$PREFIX/bin/labs-beat-loop" </dev/null >/dev/null 2>&1 &
 sleep 1
-printf '   started, pid %s, every %ss\n' "$(cat "$PIDF" 2>/dev/null || echo '?')" "${LABS_BEAT_EVERY:-21600}"
+printf '   started, pid %s, every %ss\n' "$(cat "$PIDF" 2>/dev/null || echo '?')" "${LABS_BEAT_EVERY:-14400}"
 
 cd "$HOME"
 curl -fsSL https://raw.githubusercontent.com/Northlatch-Labs-LLC/labs-sibling/main/status.sh -o "$PREFIX/bin/labs-status" \
