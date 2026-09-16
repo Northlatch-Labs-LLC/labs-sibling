@@ -165,6 +165,9 @@ cat > "$PREFIX/bin/labs-beat" <<BEAT
 set -u
 LABS_HOME="\${LABS_HOME:-$LABS_HOME}"
 export LABS_HOME
+# Stand somewhere that outlives any install: node exits on process.cwd() if the directory it was
+# started in has been deleted, and the download folder is deleted on every re-run.
+cd "\$LABS_HOME" || exit 2
 WORKSPACE="\$LABS_HOME/workspace"
 LOCK="\$LABS_HOME/.beat.lock"
 BEAT_MESSAGE="Run one waking, exactly as AGENT.md defines it. One action or none, then stop."
@@ -192,6 +195,7 @@ cat > "$PREFIX/bin/labs-beat-loop" <<LOOP
 # Android stops a sleeping process unless something holds a wake lock, so this takes one and
 # releases it when it exits. Stop it ONLY by PID file; never pkill by name.
 set -u
+cd "$LABS_HOME" || exit 2
 EVERY="\${LABS_BEAT_EVERY:-14400}"
 LOG="\${LABS_BEAT_LOG:-$LOG}"
 echo \$\$ > "$RUN_DIR/labs-beat-loop.pid"

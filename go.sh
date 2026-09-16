@@ -131,15 +131,21 @@ fi
 say "6/6 the clock"
 mkdir -p "$LABS_HOME/run"
 PIDF="$LABS_HOME/run/labs-beat-loop.pid"
+# Always restart. A loop left over from an earlier run may be standing in the download folder,
+# which this run just deleted — alive, but every node it spawns dies on process.cwd(). Stopped by
+# its PID file only, never by name.
 if [ -f "$PIDF" ] && kill -0 "$(cat "$PIDF")" 2>/dev/null; then
-  printf '   already running, pid %s\n' "$(cat "$PIDF")"
-else
-  LABS_HOME="$LABS_HOME" LABS_OPT="$LABS_OPT" LABS_BEAT_EVERY="${LABS_BEAT_EVERY:-14400}" \
-    setsid nohup "$PREFIX/bin/labs-beat-loop" </dev/null >/dev/null 2>&1 &
+  kill "$(cat "$PIDF")" 2>/dev/null || true
   sleep 1
-  printf '   started, pid %s, every %ss\n' "$(cat "$PIDF" 2>/dev/null || echo '?')" "${LABS_BEAT_EVERY:-14400}"
+  printf '   stopped the previous loop\n'
 fi
+cd "$LABS_HOME"
+LABS_HOME="$LABS_HOME" LABS_OPT="$LABS_OPT" LABS_BEAT_EVERY="${LABS_BEAT_EVERY:-14400}" \
+  setsid nohup "$PREFIX/bin/labs-beat-loop" </dev/null >/dev/null 2>&1 &
+sleep 1
+printf '   started, pid %s, every %ss\n' "$(cat "$PIDF" 2>/dev/null || echo '?')" "${LABS_BEAT_EVERY:-14400}"
 
+cd "$HOME"
 curl -fsSL https://raw.githubusercontent.com/Northlatch-Labs-LLC/labs-sibling/main/status.sh -o "$PREFIX/bin/labs-status" \
   && chmod 755 "$PREFIX/bin/labs-status" && labs-status
 

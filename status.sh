@@ -1,5 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # labs-status — who this citizen is and whether it is alive. Prints no secret.
+cd "$HOME" 2>/dev/null || cd /
 PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
 OPT="$PREFIX/opt/labs"
 HOME_L="$HOME/.labs"
