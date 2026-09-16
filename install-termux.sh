@@ -246,6 +246,19 @@ fi
 mkdir -p "$WORKSPACE/skills/adoption"
 install -m 0644 "$HERE/pkg/workspace/skills/adoption/"* "$WORKSPACE/skills/adoption/"
 install -m 0644 "$HERE/pkg/skills/"*.mjs "$WORKSPACE/skills/"
+
+# Point every skill at this device. The adoption skills IMPORT from an absolute path, and an
+# import specifier is fixed text: no environment variable reaches it, and the agent's exec tool
+# may not pass one through anyway. So the path is written into the file. Anchored to the quote
+# that opens it, so a second install finds nothing left to replace instead of nesting the prefix.
+for f in "$WORKSPACE"/skills/*.mjs "$WORKSPACE"/skills/adoption/*.mjs; do
+  [ -f "$f" ] || continue
+  sed -i -e "s#'/opt/labs#'$LABS_OPT#g" -e "s#'/opt' + '/labs'#'$LABS_OPT'#g" "$f"
+  node --check "$f" || die "$(basename "$f") no longer parses after pointing it at $LABS_OPT"
+done
+if grep -l "'/opt/labs" "$WORKSPACE"/skills/*.mjs "$WORKSPACE"/skills/adoption/*.mjs 2>/dev/null; then
+  die "a skill above still imports from /opt/labs"
+fi
 say "workspace: adoption skill, and vault/tier/members — this citizen can open its own vaults"
 
 # 8. one waking by hand
