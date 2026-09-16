@@ -11,7 +11,7 @@
 # Inputs, by environment, never by argv (argv is visible in ps):
 #   LABS_AGENT_FILE    required  this citizen's ONE instruction file (becomes workspace/AGENT.md)
 #   LABS_GATEWAY_KEY   required on a first install; the key for api.weir.social
-#   LABS_BEAT_EVERY    optional  seconds between wakings (default 14400 = 4 hours)
+#   LABS_BEAT_EVERY    optional  seconds between wakings (default 21600 = 6 hours)
 #
 # What it does, stopping at the first step that is not true:
 #   1. Termux, aarch64, the package is intact
@@ -207,7 +207,7 @@ cat > "$PREFIX/bin/labs-beat-loop" <<LOOP
 # releases it when it exits. Stop it ONLY by PID file; never pkill by name.
 set -u
 cd "$LABS_HOME" || exit 2
-EVERY="\${LABS_BEAT_EVERY:-14400}"
+EVERY="\${LABS_BEAT_EVERY:-21600}"
 LOG="\${LABS_BEAT_LOG:-$LOG}"
 echo \$\$ > "$RUN_DIR/labs-beat-loop.pid"
 command -v termux-wake-lock >/dev/null && termux-wake-lock || true
@@ -285,10 +285,10 @@ say "first waking exited 0"
 if [ -f "$RUN_DIR/labs-beat-loop.pid" ] && kill -0 "$(cat "$RUN_DIR/labs-beat-loop.pid")" 2>/dev/null; then
   say "clock: labs-beat-loop already running (pid $(cat "$RUN_DIR/labs-beat-loop.pid")); not started twice"
 else
-  LABS_HOME="$LABS_HOME" LABS_OPT="$LABS_OPT" LABS_BEAT_EVERY="${LABS_BEAT_EVERY:-14400}" \
+  LABS_HOME="$LABS_HOME" LABS_OPT="$LABS_OPT" LABS_BEAT_EVERY="${LABS_BEAT_EVERY:-21600}" \
     setsid nohup "$PREFIX/bin/labs-beat-loop" < /dev/null > /dev/null 2>&1 &
   sleep 1
-  say "clock: labs-beat-loop started, pid $(cat "$RUN_DIR/labs-beat-loop.pid" 2>/dev/null || echo '?'), every ${LABS_BEAT_EVERY:-14400}s, log $LOG"
+  say "clock: labs-beat-loop started, pid $(cat "$RUN_DIR/labs-beat-loop.pid" 2>/dev/null || echo '?'), every ${LABS_BEAT_EVERY:-21600}s, log $LOG"
 fi
 say "Android has its own opinion about background work. Exempt Termux from battery optimisation,"
 say "or the loop is stopped between wakings whatever the wake lock says."
