@@ -177,8 +177,14 @@ say "binary: $("$PREFIX/bin/labs" version 2>/dev/null | grep -o 'labs .*(git: [0
 
 # 6. config and the gateway key
 mkdir -p "$LABS_HOME" "$WORKSPACE"
-sed -e "s#__WORKSPACE__#$WORKSPACE#g" -e "s#/usr/bin/node#$NODE_BIN#g" \
+# Every absolute path in the template is a Linux host's: the workspace, the node binary, and
+# /opt/labs, which holds the MCP server and mcp.env. Termux has none of them at those paths, and
+# a config naming a file that is not there fails at the first waking with "no such file".
+sed -e "s#__WORKSPACE__#$WORKSPACE#g" \
+    -e "s#/usr/bin/node#$NODE_BIN#g" \
+    -e "s#/opt/labs#$LABS_OPT#g" \
     "$HERE/pkg/config.json" > "$LABS_HOME/config.json"
+grep -q "/opt/labs" "$LABS_HOME/config.json" && die "config.json still names /opt/labs after substitution"
 chmod 600 "$LABS_HOME/config.json"
 if [ -n "${LABS_GATEWAY_KEY:-}" ]; then
   umask 077
