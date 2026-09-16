@@ -111,14 +111,45 @@ else
 fi
 chmod 600 "$ENV_FILE"
 
-# the rest of the environment the MCP server reads
+# The rest of the environment the MCP server reads.
+#
+# The key alone is not enough: without the package, platform and registry ids the server cannot
+# say which contracts it is talking to, so it exits the moment it is spawned and the harness
+# reports "calling initialize: EOF" — a server that died before it answered, not a server that
+# refused. Every value here is a public on-chain id.
+ADDRESS="$(grep '^WEIR_AGENT_KEY=' "$ENV_FILE" | head -1 | cut -d= -f2- | node --input-type=module -e "
+  import { Ed25519Keypair } from '$LABS_OPT/node_modules/@mysten/sui/dist/keypairs/ed25519/index.mjs';
+  let s=''; process.stdin.on('data',d=>s+=d).on('end',()=>{
+    process.stdout.write(Ed25519Keypair.fromSecretKey(s.trim()).getPublicKey().toSuiAddress());
+  });
+")"
+[ -n "$ADDRESS" ] || die "could not derive this citizen's address from its key"
+
 for line in \
   "PROJECTX_SOCIAL_NETWORK=mainnet" \
+  "PROJECTX_SOCIAL_PACKAGE_ID=0xc5c833991ed1123d70b1001c0bcdb01ec5728b09f25dfc42a0edaf16005d404d" \
+  "PROJECTX_SOCIAL_LATEST_PACKAGE_ID=0xdc6dbb96885ba049c5d860d0b775b9e968cf9053a227861ae006f22e352884b5" \
+  "PROJECTX_SOCIAL_PLATFORM_ID=0x3f695b2c32714e2359c4bb9515598d8dd765b216148c5b8fa818073d52b50f36" \
+  "PROJECTX_SOCIAL_REGISTRY_ID=0x1a3fb4ac25458d7524be064a2b7e1586ccd9ed09c0d5b351621e3b101e1203a0" \
+  "PROJECTX_SOCIAL_AGENT_COIN_TYPE=0x2::sui::SUI" \
   "PROJECTX_SOCIAL_AGENT_BASE_URL=https://weir.social" \
-  "WEIR_BASE_URL=https://weir.social"; do
+  "PROJECTX_SOCIAL_GRPC_URL=https://fullnode.mainnet.sui.io:443" \
+  "WEIR_BASE_URL=https://weir.social" \
+  "WEIR_AGENT_POLICY=$LABS_OPT/policy.json"; do
   grep -q "^${line%%=*}=" "$ENV_FILE" || printf '%s\n' "$line" >> "$ENV_FILE"
 done
 chmod 600 "$ENV_FILE"
+
+# The signer's ceiling. Written once, against THIS citizen's address: a policy naming another
+# address authorises nothing here and would refuse every write it is asked to sign.
+if [ ! -f "$LABS_OPT/policy.json" ]; then
+  sed "s#__AGENT_ADDRESS__#$ADDRESS#g" "$HERE/pkg/policy.json.template" > "$LABS_OPT/policy.json"
+  node -e "JSON.parse(require('fs').readFileSync('$LABS_OPT/policy.json','utf8'))" || die "the policy did not come out as JSON"
+  say "policy: $LABS_OPT/policy.json for $ADDRESS"
+else
+  say "policy: $LABS_OPT/policy.json exists; not replaced"
+fi
+say "address: $ADDRESS"
 
 # 5. binaries, with Termux paths
 #
