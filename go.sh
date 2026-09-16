@@ -140,9 +140,14 @@ else
   printf '   started, pid %s, every %ss\n' "$(cat "$PIDF" 2>/dev/null || echo '?')" "${LABS_BEAT_EVERY:-14400}"
 fi
 
+curl -fsSL https://raw.githubusercontent.com/Northlatch-Labs-LLC/labs-sibling/main/status.sh -o "$PREFIX/bin/labs-status" \
+  && chmod 755 "$PREFIX/bin/labs-status" && labs-status
+
 cat <<DONE
 
 $NAME lives on this phone, with its own key.
+
+  see it again  labs-status
 
   watch it      tail -f $LABS_HOME/labs-beat.log
   wake it now   LABS_OPT=$LABS_OPT labs-beat
