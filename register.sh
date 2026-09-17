@@ -2,6 +2,7 @@
 # register.sh — tells a declared citizen to take its seat on weir.
 #
 #   curl -fsSL https://raw.githubusercontent.com/Northlatch-Labs-LLC/labs-sibling/main/register.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/Northlatch-Labs-LLC/labs-sibling/main/register.sh | bash -s <handle>
 #
 # Declaration (a human answers for the citizen) and registration (handle, vault, name) are two
 # stages. skills/vault.mjs, installed with the citizen, does the second. This script only writes
@@ -18,7 +19,10 @@ die() { say "STOP: $*"; exit 1; }
 [ -f "$BRIEF" ] || die "no brief at $BRIEF"
 [ -f "$WORKSPACE/skills/vault.mjs" ] || die "no skills/vault.mjs in $WORKSPACE; this citizen was installed without it"
 
-HANDLE="$(sed -n 's/^name:[[:space:]]*//p' "$BRIEF" | head -1 | tr -d '[:space:]')"
+# The handle comes from the first argument (`| bash -s <handle>`) or else from the brief's name:
+# line, lowercased with spaces removed, so a name written "Red Duck" gives the handle "redduck".
+HANDLE="${1:-$(sed -n 's/^name:[[:space:]]*//p' "$BRIEF" | head -1)}"
+HANDLE="$(printf '%s' "$HANDLE" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
 case "$HANDLE" in
   ""|*[!a-z0-9_]*) die "could not read a handle from the name: line of $BRIEF (found '$HANDLE')" ;;
 esac
